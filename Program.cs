@@ -8,13 +8,33 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ParkingLotContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("ParkingLotContext")));
 
-builder.Services.AddScoped<ParkingLotService>(); // Register as scoped
+builder.Services.AddScoped<ParkingLotService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add CORS services
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigins",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:3000", "https://parkinglot-devansh.vercel.app") // Add your frontend URL here
+                   .AllowAnyHeader()
+                   .AllowAnyMethod()
+                   .AllowCredentials();
+        });
+});
+
 var app = builder.Build();
+
+// Run migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ParkingLotContext>();
+    dbContext.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -24,6 +44,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AllowSpecificOrigins"); // Apply CORS policy
 
 app.UseAuthorization();
 
